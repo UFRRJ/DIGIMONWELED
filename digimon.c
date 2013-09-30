@@ -34,17 +34,24 @@ void guardajoias();
 int escolhejoia(PECA matriz[LIN][COL], int x , int y);
 //int verificarclique(int , int );
 void blitarjogo(PECA matriz[][COL]);
+void itoa(int n, char *s);
+void reverse ( char *s); 
+void BlitaPontos ();
+
+int pontuacao = 0;
+
+	TTF_Font *font;
 
 int main(int argc, char* argv[])
 {
 
     PECA matriz[LIN][COL];
-    int l1, c1, l2, c2, pontuacao=0, i, fecharjogo=1, x, y, verificador=0;
+    int l1, c1, l2, c2, i, fecharjogo=1, verificador=0;
     int x0=50;
     int y0=150;
 	SDL_Rect rectfundo={0,0,800,640};
     
-	fundo=IMG_Load("fundo1.jpg");
+	fundo = IMG_Load("fundo1.jpg");
 
 
 	//retângulos
@@ -60,10 +67,10 @@ int main(int argc, char* argv[])
     music3=Mix_LoadMUS("fundo.mp3");*/
 
     //criar tela
-   screen = SDL_SetVideoMode (800 , 640, 16, SDL_SWSURFACE );
+   screen = SDL_SetVideoMode (800 , 640, 32, SDL_SWSURFACE );
 
    //Titulo da tela
-	//SDL_WM_SetCaption( "Digimon Jóias", NULL );
+	SDL_WM_SetCaption( "Digimon Jóias", NULL );
 
 	//aplica a imagen na superfície
    /* Mix_PlayMusic( music3, 1 );*/
@@ -71,70 +78,92 @@ int main(int argc, char* argv[])
     GENERATOR(matriz);
 
     guardajoias(joias);
-			SDL_BlitSurface(fundo, NULL, screen, NULL );	
-            blitarjogo(matriz);
-SDL_Flip(screen);
-SDL_Delay(2000);
 
     //eventos
     SDL_Event event;
-    while(fecharjogo==1)
-		{
-     	while( SDL_PollEvent( &event ) )
-			{
-          if( event.type == SDL_QUIT )
-              fecharjogo=0;
-          
 
-          if( event.type == SDL_MOUSEBUTTONDOWN )
-					{
+   //texto
+	font = TTF_OpenFont( "lazy.ttf", 28 );
 
-					if((event.button.x>x0 && event.button.x< x0+ (40*10) )&&(event.button.y>y0 && event.button.y< y0 + (40*10) ))
-					{
-						int x, y;
-						x = event.button.x;
-					  y = event.button.y;
+        do{
+            SDL_BlitSurface(fundo, NULL, screen, &rectfundo );	
+       
+	    blitarjogo(matriz);
+	    BlitaPontos ();
+            
+	SDL_Flip(screen);
 
-					int i,j;
-					for(i=0;i<10;i++)
-					{
-						for(j=0;j<10;j++)
-						{
-							if(x>matriz[i][j].rect.x && x < matriz[i][j].rect.x + 40 && y > matriz[i][j].rect.y && y < matriz[i][j].rect.y + 40)
-							{
-								if(verificador == 0)
-								{
-								 l1= j;
-                 c1= i;
-								 printf("linha%d coluna %d \n",l1,c1);
-                 verificador = 1;
-								}
-								else if(verificador == 1)
-								{
-									 l2= j;
-		               c2= i;
-								 printf("linha%d coluna %d \n",l2,c2);
-									verificador=0;
-								}
-							}
+            while( SDL_PollEvent( &event ) ){
 
-						}
-					}
+                if( event.type == SDL_QUIT ){
+                    fecharjogo=0;
+                }
+
+                if( event.type == SDL_MOUSEBUTTONDOWN ){
+           		//se o botao esquerdo do mouse esta pressioando
+                    if( (event.button.x > x0) &&  (event.button.x < x0+10*joias[0]->w)  &&   (event.button.y > y0) &&  (event.button.y < y0 + 10*joias[0]->h)){
+                        if(verificador == 0){
+                            l1= (event.button.x - x0) / joias[0]->w;
+                            c1= (event.button.y - y0) / joias[0]->h;
+
+                            verificador = 1;
+							continue;
+                        }
+                    	if(verificador == 1){
+                        	l2= (event.button.x - x0) / joias[0]->w;
+                        	c2= (event.button.y - y0) / joias[0]->h;
+
+                        	verificador = 0;
+                    	}
+                    }
+                }
+
+        }            
+	if ( (l1<0 || (l1>LIN-1)) || (c1<0 || (c1>COL-1)) || (l2<0 || (l2>LIN-1)) || (c2<0 || (c2>COL-1)) )
+            {
+
+                //printf("TROCA DE POSICOES INVALIDAS!\n");
+                continue;
+            }
 
 
+            if ( l1-l2>1 || c2-c1>1 )
+            {
+                //printf("TROCA SOMENTE ENTRE ELEMENTOS VIZINHOS!\n");
+                continue;
+            }
 
-					}
-						
-						
+            CHANGE_POSITION(matriz, l1, c1, l2, c2);
 
-						
+            if(CHECK_ADJACENT(matriz, l1, c1))
+	    {
 
-					}
+		//printf("Achou sequencias!");
 
-			}
-		}
+	    }
+
+	    else if(CHECK_ADJACENT(matriz, l2, c2))
+	    {
+
+	        //printf("Achou sequencias!");
+            }
+
+	    if(verifica(matriz)!=0){
+            pontuacao+=verifica(matriz);
+	    }
+        if(verifica(matriz)==0){
+        	//printf("Nao achou sequencias!");
+			CHANGE_POSITION(matriz, l1, c1, l2, c2);
+            }
+            for(i=0;i<=20;i++){
+                troca(matriz);
+                //quebra(matriz);
+            }
+
+       } while(/*!((l1 < 0 || c1 < 0) || (l2 < 0 ||c2 < 0))*/fecharjogo==1);
+
         return 0;
-}
+    }
 
 
 void guardajoias(){
@@ -370,3 +399,58 @@ void troca(PECA matriz[][COL]){
         }
     }
 }*/
+
+void itoa(int n, char s[]) 
+{ 
+	int i, sign;
+		
+		if ((sign = n) < 0) 
+			n = -n;
+			i = 0; 
+		
+		do { 
+			s[i++] = n % 10 + '0';
+		   } while ((n /= 10) > 0);
+
+
+		if (sign < 0) 
+
+			s[i] = '-';
+
+				s[i] = '\0'; 
+
+			reverse(s); 
+} 
+
+void reverse (char s[]) 
+{ 
+
+	int i, j; char c;
+	
+		for (i = 0, j = strlen(s)-1; i<j; i++, j--) { 
+			
+			c = s[i]; 
+			s[i] = s[j]; 
+			s[j] = c; 
+		
+		} 
+}
+
+
+
+void BlitaPontos () 
+{ 
+	char pont[10]; 
+
+	itoa(pontuacao,pont);
+	
+	SDL_Rect textLocation = { 0, 600, 0, 0 }; 
+	SDL_Color foregroundColor = { 255, 255, 255 };
+	SDL_Surface* textSurface = TTF_RenderText_Solid (font, "Score:", foregroundColor);
+	SDL_BlitSurface (textSurface, NULL, screen, &textLocation);
+	SDL_Color PontColor = { 255, 240, 50 };	
+	SDL_Rect PontLocation = { 0, 600, 0, 0 }; 	
+	textSurface = TTF_RenderText_Solid (font, pont, PontColor); 
+	SDL_BlitSurface (textSurface, NULL, screen, &PontLocation);
+	SDL_FreeSurface (textSurface); 
+}
